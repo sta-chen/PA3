@@ -53,7 +53,7 @@ stats::stats(PNG & im){
 long stats::rectArea(pair<int,int> ul, pair<int,int> lr){
 
 /* your code here */
-	long area = (lr.first - ul.first + 1) * (lr.second - ul.second);
+	long area = (lr.first - ul.first + 1) * (lr.second - ul.second + 1);
     return area;
 
 }
