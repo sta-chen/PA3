@@ -4,6 +4,21 @@
 stats::stats(PNG & im){
 
 /* your code here! */
+    sumHueX.clear();
+    sumHueX.resize(im.height(), vector<double> (im.width(), 0));
+
+    sumHueY.clear();
+    sumHueY.resize(im.height(), vector<double> (im.width(), 0));
+
+    sumSat.clear();
+    sumSat.resize(im.height(), vector<double> (im.width(), 0));
+
+    sumLum.clear();
+    sumLum.resize(im.height(), vector<double> (im.width(), 0));
+
+    hist.clear();
+    hist.resize(im.height(), vector<vector<int>> (im.width(), vector<int> (36, 0)));
+
 	for (unsigned int i = 0; i < im.width(); i++) {
         for(unsigned int j = 0; j < im.height(); j++) {
             HSLAPixel* pixel = im.getPixel(i,j);
@@ -13,38 +28,44 @@ stats::stats(PNG & im){
                 sumHueY[i][j]= sin(pixel->h * PI / 180);
                 sumSat[i][j] = pixel->s;
                 sumLum[i][j] = pixel->l;
+                hist[i][j][pixel->h / 10]++;
             } else if (i == 0) {
                 sumHueX[i][j] = sumHueX[i][j - 1] + cos(pixel->h * PI / 180);
                 sumHueY[i][j] = sumHueY[i][j - 1] + sin(pixel->h * PI / 180);
                 sumSat[i][j] = sumSat[i][j - 1] + pixel->s;
                 sumLum[i][j] = sumLum[i][j - 1] + pixel->l;
+
+                for (int k = 0; k < 36; k++) {
+                    hist[i][j][k] = hist[i][j - 1][k];
+                }
+
+                hist[i][j][pixel->h / 10]++;
             } else if (j == 0) {
                 sumHueX[i][j] = sumHueX[i - 1][j] + cos(pixel->h * PI / 180);
                 sumHueY[i][j] = sumHueY[i - 1][j] + sin(pixel->h * PI / 180);
                 sumSat[i][j] = sumSat[i - 1][j] + pixel->s;
                 sumLum[i][j] = sumLum[i - 1][j] + pixel->l;
+
+                for (int k = 0; k < 36; k++) {
+                    hist[i][j][k] = hist[i - 1][j][k];
+                }
+
+                hist[i][j][pixel->h / 10]++;
+
             } else {
                 sumHueX[i][j] = sumHueX[i][j - 1] + sumHueX[i - 1][j] - sumHueX[i - 1][j - 1] + cos(pixel->h * PI / 180);
                 sumHueY[i][j] = sumHueY[i][j - 1] + sumHueY[i - 1][j] - sumHueY[i - 1][j - 1] + sin(pixel->h * PI / 180);
                 sumSat[i][j] = sumSat[i][j - 1] + sumSat[i - 1][j] - sumSat[i - 1][j - 1] + pixel->s;
                 sumLum[i][j] = sumLum[i][j - 1] + sumLum[i - 1][j] - sumLum[i - 1][j - 1] + pixel->l;
+
+                for (int k = 0; k < 36; k++) {
+                    hist[i][j][k] = hist[i][j - 1][k] + hist[i - 1][j][k] + hist[i - 1][j - 1][k];
+                }
+
+                hist[i][j][pixel->h / 10]++;
             }
 
-            for (int k = 0; k < 36; k++) {
-                int count = 0;
-                for (unsigned int m = 0; m < i + 1; m++) {
-                    for (unsigned int n = 0; n < j + 1; n++){
-                        HSLAPixel* currP = im.getPixel(m,n);
-                        double currH = currP->h;
-                        if (k == 0 && currH / 10 == 36) {
-                            count++;
-                        } else if (currH / 10 == k) {
-                            count++;
-                        }
-                    }
-                }
-                hist[i][j][k] = count;
-            }
+            
         }
     }
 
