@@ -19,7 +19,7 @@ stats::stats(PNG & im){
     hist.clear();
     hist.resize(im.height(), vector<vector<int>> (im.width(), vector<int> (36, 0)));
 
-	for (unsigned int i = 0; i < im.width(); i++) {
+    for (unsigned int i = 0; i < im.width(); i++) {
         for(unsigned int j = 0; j < im.height(); j++) {
             HSLAPixel* pixel = im.getPixel(i,j);
             if (i == 0 && j ==0) {
@@ -84,38 +84,44 @@ HSLAPixel stats::getAvg(pair<int,int> ul, pair<int,int> lr){
 /* your code here */
 	HSLAPixel avg;
     long area = rectArea(ul,lr);
+
     int ui = ul.first;
     int uj = ul.second;
     int li = lr.first;
     int lj = lr.second;
-    if (ui == 0 && uj == 0) {
-        double avgHueX = sumHueX[li][lj];
-        double avgHueY = sumHueY[li][lj];
-        double avgSat = sumSat[li][lj] / area;
-        double avgLum = sumLum[li][lj] / area;
 
-        double avgHue = atan(avgHueY / avgHueX) * 180 / PI;
-        avg.h = avgHue;
-        avg.s = avgSat;
-        avg.l = avgLum;
-        avg.a = 1.0;
-        
-    } else {
-        double avgHueX = (sumHueX[li][lj] - sumHueX[ui - 1][lj] - sumHueX[li][uj - 1] + sumHueX[ui - 1][uj - 1]);
-        double avgHueY = (sumHueY[li][lj] - sumHueY[ui - 1][lj] - sumHueY[li][uj - 1] + sumHueY[ui - 1][uj - 1]);
-        double avgSat = (sumSat[li][lj] - sumSat[ui - 1][lj] - sumSat[li][uj - 1] + sumSat[ui - 1][uj - 1]) / area;
-        double avgLum = (sumLum[li][lj] - sumLum[ui - 1][lj] - sumLum[li][uj - 1] + sumLum[ui - 1][uj - 1]) / area;
+    double avgSat, avgLum, avgHue;
 
-        double avgHue = atan(avgHueY / avgHueX) * 180 / PI;
-        avg.h = avgHue;
-        avg.s = avgSat;
-        avg.l = avgLum;
-        avg.a = 1.0;
-    }
+    if(ui == 0 && uj == 0) {
 
-    
+      avgHue = atan2((sumHueY[li][lj]), (sumHueX[li][lj])) * 180 /PI;
+      avgSat = sumSat[li][lj] / area;
+      avgLum = sumLum[li][lj] / area;
 
-    return avg;
+  } else if (ui == 0) {
+
+    avgHue = atan2((sumHueY[li][lj] - sumHueY[ui][uj - 1]), (sumHueX[li][lj] - sumHueX[ui][uj - 1])) * 180 / PI;
+    avgSat = (sumSat[li][lj] - sumSat[ui][uj - 1]) / area;
+    avgLum = (sumLum[li][lj] - sumLum[ui][uj - 1]) / area;
+
+} else if (uj == 0) {
+
+    avgHue = atan2((sumHueY[li][lj] - sumHueY[ui - 1][uj]), (sumHueX[li][lj] - sumHueX[ui - 1][uj])) * 180 / PI;
+    avgSat = (sumSat[li][lj] - sumSat[ui - 1][uj]) / area;
+    avgLum = (sumLum[li][lj] - sumLum[ui - 1][uj]) / area;
+
+} else {
+
+    avgHue = atan2((sumHueY[li][lj] - sumHueY[ui - 1][uj] - sumHueY[ui][uj - 1]), (sumHueX[li][lj] - sumHueX[ui - 1][uj] - sumHueX[ui][uj - 1])) * 180 / PI;
+    avgSat = (sumSat[li][lj] - sumSat[ui - 1][uj] - sumSat[ui][uj - 1]) / area;
+    avgLum = (sumLum[li][lj] - sumLum[ui - 1][uj] - sumLum[ui][uj - 1]) / area;
+
+}
+
+avg = HSLAPixel(avgHue, avgSat, avgLum);
+
+
+return avg;
 
 
 }
