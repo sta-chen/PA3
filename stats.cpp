@@ -128,7 +128,7 @@ return avg;
 
 double stats::entropy(pair<int,int> ul, pair<int,int> lr){
 
-    vector<int> distn;
+    vector<int> distn(36, 0);
 
     /* using private member hist, assemble the distribution over the
     *  given rectangle defined by points ul, and lr into variable distn.
@@ -142,31 +142,95 @@ double stats::entropy(pair<int,int> ul, pair<int,int> lr){
             entropy += ((double) distn[i]/(double) area) 
                                     * log2((double) distn[i]/(double) area);
     */
-    double entropy = 0;
-    long area = rectArea(ul,lr);
-    int ui = ul.first;
-    int uj = ul.second;
-    int li = lr.first;
-    int lj = lr.second;
-    distn = hist[li][lj];
+    // double entropy = 0;
+    // double area = (double) rectArea(ul,lr);
+    // int ui = ul.first;
+    // int uj = ul.second;
+    // int li = lr.first;
+    // int lj = lr.second;
 
-    if (ui == 0 && uj == 0) {
-        for (int k = 0; k < 36; k++) {
-            if (distn[k] > 0) {
-                entropy += ((double) distn[k] / (double) area) * log2((double) distn[k] / (double) area);
-            }
-        }
-    } else {
-        vector<int> temp1 = hist[ui - 1][lj]; //left rectangle
-        vector<int> temp2 = hist[li][uj - 1]; // upper rectangle
-        vector<int> temp3 = hist[ui - 1][uj - 1]; // upper left rectangle
-        for (int k = 0; k < 36; k++) {
-            distn[k] = distn[k] - temp1[k] - temp2[k] + temp3[k];
-            if (distn[k] > 0) {
-                entropy += ((double) distn[k] / (double) area) * log2((double) distn[k] / (double) area);
-            }
-        }
+    // if (ui == 0 && uj == 0) {
+    //     for (int k = 0; k < 36; k++) {
+    //         if (distn[k] > 0) {
+    //             entropy += ((double) distn[k] / (double) area) * log2((double) distn[k] / (double) area);
+    //         }
+    //     }
+    // } else {
+    //     vector<int> temp1 = hist[ui - 1][lj]; //left rectangle
+    //     vector<int> temp2 = hist[li][uj - 1]; // upper rectangle
+    //     vector<int> temp3 = hist[ui - 1][uj - 1]; // upper left rectangle
+    //     for (int k = 0; k < 36; k++) {
+    //         distn[k] = distn[k] - temp1[k] - temp2[k] + temp3[k];
+    //         if (distn[k] > 0) {
+    //             entropy += ((double) distn[k] / (double) area) * log2((double) distn[k] / (double) area);
+    //         }
+    //     }
 
+    // }
+    // return  -1 * entropy;
+
+    // if(ui == 0 && uj == 0){
+
+    //   for (int k = 0; k < 36; k++) {
+    //     distn[k] = hist[li][lj][k];
+    //   }
+
+    // } else if(ui == 0){
+
+    //   for(int k = 0; k < 36; k++){
+    //     distn[k] = hist[li][lj][k] - hist[li][uj-1][k];
+    //   }
+
+    // } else if(uj == 0){
+
+    //   for(int k = 0; k < 36; k++){
+    //     distn[k] = hist[li][lj][k] - hist[li-1][uj][k];
+    //   }
+
+    // } else{
+
+    //   for(int k = 0; k < 36; k++){
+    //       distn[k] = hist[li][lj][k] - hist[ui-1][uj][k] - hist[ui][uj-1][k] + hist[ui+1][uj+1][k];
+    //   }
+    // }
+
+    // for(int i = 0; i < 36; i++){
+
+    //   if (distn[i] > 0 )
+
+    //       entropy += ((double) distn[i]/(double) area) * log2((double) distn[i]/(double) area);
+    // }
+
+    for (int i = 0; i < 36; i++) {
+        if (ul.first == 0 && ul.second == 0) {
+            distn[i] = hist[lr.first][lr.second][i];
+        } else if (ul.second == 0) {
+            distn[i] = hist[lr.first][lr.second][i] - hist[ul.first - 1][lr.second][i];
+        } else if (ul.first == 0) {
+            distn[i] = hist[lr.first][lr.second][i] - hist[lr.first][ul.second - 1][i];
+        } else {
+            distn[i] = hist[lr.first][lr.second][i] - hist[ul.first - 1][lr.second][i] -
+            hist[lr.first][ul.second - 1][i] + hist[ul.first - 1][ul.second - 1][i];
+        }
     }
+    
+    long area = rectArea(ul, lr);
+    double entropy = 0;
+    for (int i = 0; i < 36; i++) {
+        if (distn[i] > 0 )
+            entropy += ((double) distn[i]/(double) area)
+            * log2((double) distn[i]/(double) area);
+    }
+
     return  -1 * entropy;
 }
+
+
+
+
+
+
+
+
+
+
