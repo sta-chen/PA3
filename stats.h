@@ -105,6 +105,8 @@ public:
      * bins holding no pixels should not be included in the sum. */
     double entropy(pair<int,int> ul, pair<int,int> lr);
 
+    void createHistogram(int x, int y);
+
 };
 
 #endif
