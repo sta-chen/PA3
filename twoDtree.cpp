@@ -1,4 +1,3 @@
-
 /**
  *
  * twoDtree (pa3)
@@ -8,263 +7,324 @@
  *
  */
 
+
 #include "twoDtree.h"
 
 /* node constructor given */
 twoDtree::Node::Node(pair<int,int> ul, pair<int,int> lr, HSLAPixel a)
-	:upLeft(ul),lowRight(lr),avg(a),LT(NULL),RB(NULL)
-	{}
+        :upLeft(ul),lowRight(lr),avg(a),LT(NULL),RB(NULL)
+{}
 
 /* destructor given */
 twoDtree::~twoDtree(){
-	clear();
+    clear();
 }
 
 /* copy constructor given */
 twoDtree::twoDtree(const twoDtree & other) {
-	copy(other);
+    copy(other);
 }
 
 
 /* operator= given */
 twoDtree & twoDtree::operator=(const twoDtree & rhs){
-	if (this != &rhs) {
-		clear();
-		copy(rhs);
-	}
-	return *this;
+    if (this != &rhs) {
+        clear();
+        copy(rhs);
+    }
+    return *this;
 }
 
 /* twoDtree constructor */
-twoDtree::twoDtree(PNG & imIn){ 
-/* your code here */
-	height = imIn.height();
-	width  = imIn.width();
-	stats s(imIn);
-	pair<int, int> ul = make_pair(0, 0);
-	pair<int, int> lr = make_pair(width - 1, height - 1);
-	root = buildTree(s,ul,lr, true);
+twoDtree::twoDtree(PNG & imIn){
+    stats s = stats(imIn);
+    this->root = buildTree(s,make_pair<int,int>(0,0),make_pair<int,int>(imIn.width()-1,imIn.height()-1),1);
+    this->height = imIn.height();
+    this->width = imIn.width();
 }
+
+#ifdef MEMORIZE
+static inline unsigned long long pair_hash(pair<int,int> x, pair<int,int> y) {
+	return (x.first*23333333333) + (x.second*131071) + (y.first*23333) + (y.second*31);
+}
+#endif
 
 /* buildTree helper for twoDtree constructor */
 twoDtree::Node * twoDtree::buildTree(stats & s, pair<int,int> ul, pair<int,int> lr, bool vert) {
-
-/* your code here */
-	HSLAPixel avg = s.getAvg(ul, lr);
-
-	root = new Node(ul, lr, avg);
-
-	buildTree(root, s, ul, lr, vert);
-
-	return root;
-
-}
-
-void twoDtree::buildTree(Node* node, stats& s, pair<int,int> ul, pair<int,int> lr, bool vert) {
-	if (ul.first == lr.first && ul.second == lr.second) {
-		return;
+// #ifdef DEBUG_BUILDTREE
+// 	cout << "ul: (" << ul.first << ", " << ul.second << ") ";
+// 	cout << "lr: (" << lr.first << ", " << lr.second << ") " << endl;
+// #endif
+    HSLAPixel ag = s.getAvg(ul,lr);
+    Node * curr;
+	// experimental
+#ifdef MEMORIZE
+	unsigned long long hash = pair_hash(ul,lr);
+	auto it = this->memorized.find(hash);
+	if(it!=this->memorized.end()) {
+		return it->second;
 	} else {
-		pair<pair<int,int>, pair<int,int>> corners = findBestSplit(s, ul, lr, vert);
-
-		node->LT = new Node(ul, corners.first, s.getAvg(ul, corners.first));
-		node->RB = new Node(corners.second, lr, s.getAvg(corners.second, lr));
-
-		buildTree(node->LT, s, ul, corners.first, !vert);
-		buildTree(node->RB, s, corners.second, lr, !vert);
-
+		curr = new Node(ul,lr,ag);
+		this->memorized[hash] = curr;
 	}
+#else
+	curr = new Node(ul,lr,ag);
+#endif
+
+    if(ul.first!=lr.first || ul.second!=lr.second){
+        if(ul.first==lr.first){
+            int pos = splitHorizontally(s,ul,lr);
+            int m = ul.second;
+            int n = ul.first;
+            int i = lr.second;
+            int j = lr.first;
+            pair<int,int> lul = {n,m};
+            pair<int,int> llt = {n,pos};
+            pair<int,int> rul = {j,pos+1};
+            pair<int,int> rlt = {j,i};
+            curr->LT = buildTree(s,lul,llt,0);
+            curr->RB = buildTree(s,rul,rlt,0);
+        }
+        else if(ul.second==lr.second){
+            int pos = splitVertically(s,ul,lr);
+            int m = ul.second;
+            int n = ul.first;
+            int i = lr.second;
+            int j = lr.first;
+            pair<int,int> lul = {n,m};
+            pair<int,int> llt = {pos,m};
+            pair<int,int> rul = {pos+1,i};
+            pair<int,int> rlt = {j,i};
+            curr->LT = buildTree(s,lul,llt,1);
+            curr->RB = buildTree(s,rul,rlt,1);
+        }
+        else if(vert){
+            int pos = splitVertically(s,ul,lr);
+            int m = ul.second;
+            int n = ul.first;
+            int i = lr.second;
+            int j = lr.first;
+            pair<int,int> lul = {n,m};
+            pair<int,int> llt = {pos,i};
+            pair<int,int> rul = {pos+1,m};
+            pair<int,int> rlt = {j,i};
+            curr->LT = buildTree(s,lul,llt,0);
+            curr->RB = buildTree(s,rul,rlt,0);
+        }
+        else if(!vert){
+            int pos = splitHorizontally(s,ul,lr);
+            int m = ul.second;
+            int n = ul.first;
+            int i = lr.second;
+            int j = lr.first;
+            pair<int,int> lul = {n,m};
+            pair<int,int> llt = {j,pos};
+            pair<int,int> rul = {n,pos+1};
+            pair<int,int> rlt = {j,i};
+            curr->LT = buildTree(s,lul,llt,1);
+            curr->RB = buildTree(s,rul,rlt,1);
+        }
+    }
+    if (ul.first==lr.first && ul.second==lr.second){
+        curr->LT = NULL;
+        curr->RB = NULL;
+    }
+    return curr;
 }
 
-pair<pair<int,int>, pair<int,int>> twoDtree::findBestSplit(stats& s, pair<int,int> ul, pair<int,int> lr, bool vert) {
-
-	int ui = ul.first;
-	int uj = ul.second;
-	int li = lr.first;
-	int lj = lr.second;
-
-	double currentLowestEntropy = LONG_MAX;
-	double currentEntropy;
-	int smallestBottomArea = INT_MAX;
-	pair<int,int> lrCorner;
-	pair<int,int> ulCorner;
-	double totalArea = s.rectArea(pair<int,int> (ui,uj), pair<int,int> (li,lj));
-
-	if (ui == li) {
-		vert = false;
-	}
-
-	if (uj == lj) {
-		vert = true;
-	}
-
-	if (vert) {
-		for (int i = 0; i < li - ui; i++) {
-			int topArea = s.rectArea(pair<int,int> (ui,uj), pair<int,int> (ui + i, lj));
-			int bottowmArea = s.rectArea(pair<int,int> (ui + 1 + i, uj), pair<int,int> (li,lj));
-
-			currentEntropy = (topArea / totalArea) * s.entropy(pair<int,int> (ui, uj), pair<int,int> (ui + i, lj)) +
-							(bottowmArea / totalArea) * s.entropy(pair<int,int> (ui + 1 + i, uj), pair<int,int> (li,lj));
-
-			if (currentEntropy < currentLowestEntropy) {
-				currentLowestEntropy = currentEntropy;
-				lrCorner = pair<int,int> (ui + i, uj);
-				ulCorner = pair<int,int> (ui + 1 + i, uj);
-			}
-			else if (currentEntropy == currentLowestEntropy && bottowmArea < smallestBottomArea) {
-
-				currentLowestEntropy = currentEntropy;
-				lrCorner = pair<int,int> (ui + i, uj);
-				ulCorner = pair<int,int> (ui + 1 + i, uj);
-				smallestBottomArea = bottowmArea;
-			}
-		}
-
-		return pair<pair<int,int>, pair<int,int>> (lrCorner, ulCorner);
-	} else {
-		for (int j = 0; j < lj - uj; j++) {
-			int topArea = s.rectArea(pair<int,int> (ui, uj), pair<int,int> (li, uj + j));
-			int bottowmArea = s.rectArea(pair<int,int> (ui, uj + 1 + j), pair<int,int> (li,lj));
-
-			currentEntropy = (topArea / totalArea) * s.entropy(pair<int,int> (ui, uj), pair<int,int> (li, uj + j)) +
-							(bottowmArea / totalArea) * s.entropy(pair<int,int> (ui, uj + 1 + j), pair<int,int> (li,lj));
-			if (currentEntropy < currentLowestEntropy) {
-				currentLowestEntropy = currentEntropy;
-				lrCorner = pair<int,int> (li,uj + j);
-				ulCorner = pair<int,int> (ui, uj + 1 + j);
-			}
-			else if (currentEntropy == currentLowestEntropy && bottowmArea < smallestBottomArea) {
-				currentLowestEntropy = currentEntropy;
-				lrCorner = pair<int,int> (li,uj + j);
-				ulCorner = pair<int,int> (ui, uj + 1 + j);
-				smallestBottomArea = bottowmArea;
-			}
-		}
-
-		return pair<pair<int,int>, pair<int,int>> (lrCorner, ulCorner);
-	}
+/** splitVertically helper for buildTree */
+int twoDtree::splitVertically(stats & s,pair<int, int> ul, pair<int, int> lr) {
+    int m = ul.second;
+    int n = ul.first;
+    int i = lr.second;
+    int j = lr.first;
+    pair<int,int> lul = {n,m};  //first split left rec :upper left
+    pair<int,int> llr = {n,i};  // left rec: lower right
+    double firstLE = s.entropy(lul,llr);
+    pair<int,int> rul = {n+1,m}; //first split right rec :upper left
+    pair<int,int> rlr = {j,i};  // right rec: lower right
+    double firstRE = s.entropy(rul,rlr);
+    double totalPixels = s.rectArea(ul,lr);
+    // weighted entropy!!!!
+    double min = (firstLE*(s.rectArea(lul,llr)) + firstRE*(s.rectArea(rul,rlr)))/totalPixels;
+    int Position = n; 	//this position is on the left side of the split line!!!!!
+    for (int k = n; k < j; k++) {  //starts at (m,n), end at (m,j-1)
+        int currPosition = k;
+        pair<int,int> lTop = {n,m};
+        pair<int,int> lBot = {k,i};
+        double leftE = s.entropy(lTop,lBot);
+        pair<int,int> rTop = {k+1,m};
+        pair<int,int> rBot = {j,i};
+        double rightE = s.entropy(rTop,rBot);
+        double currE = (leftE*(s.rectArea(lTop,lBot))+rightE*(s.rectArea(rTop,rBot)))/totalPixels;
+        if (currE<=min) {
+            if (currE == min) {
+                int preMinRight = (i-m+1)*(j-(Position+1)+1);
+                int currRight = (i-m+1)*(j-(currPosition+1)+1);
+                if (currRight<preMinRight) {
+                    Position = currPosition;
+                    min = currE;
+                }
+            } else {
+                Position = currPosition;
+                min = currE;
+            }
+        }
+    }
+    return Position;
 }
+
+int twoDtree::splitHorizontally(stats &s, pair<int, int> ul, pair<int, int> lr) {
+    int m = ul.second;
+    int n = ul.first;
+    int i = lr.second;
+    int j = lr.first;
+    pair<int,int> tul = {n,m};  //first split top rec :upper left
+    pair<int,int> tlr = {j,m};  // top rec: lower right
+    double firstLE = s.entropy(tul,tlr);
+    pair<int,int> bul = {n,m+1}; //first split bottom rec :upper left
+    pair<int,int> blr = {j,i};  // bottom rec: lower right
+    double firstRE = s.entropy(bul,blr);
+    double totalPixels = s.rectArea(ul,lr);
+    // weighted entropy!!!!
+    double min = (firstLE*(s.rectArea(tul,tlr)) + firstRE*(s.rectArea(bul,blr)))/totalPixels;
+    int Position = m; 	//this position is  above  the split line!!!!!
+    for (int k = m; k < i; k++) {  //starts at (m,n), end at (m,j-1)
+        int currPosition = k;
+        pair<int,int> tLeft = {n,m};
+        pair<int,int> tRight = {j,k};
+        double topE = s.entropy(tLeft,tRight);
+        pair<int,int> bLeft = {n,k+1};
+        pair<int,int> bRight = {j,i};
+        double bottomE = s.entropy(bLeft,bRight);
+        double currE = (topE*(s.rectArea(tLeft,tRight))+bottomE*(s.rectArea(bLeft,bRight)))/totalPixels;
+        if (currE<=min) {
+            if (currE == min) {
+                int preMinBottom = (j-n+1)*(i-(Position+1)+1);
+                int currBottom = (j-n+1)*(i-(currPosition+1)+1);
+                if (currBottom<preMinBottom) {
+                    Position = currPosition;
+                    min = currE;
+                }
+            } else {
+                Position = currPosition;
+                min = currE;
+            }
+        }
+    }
+    return Position;
+}
+
 
 /* render your twoDtree into a png */
 PNG twoDtree::render(){
-/* your code here */
-
-	if (root == NULL) {
-		return *(new PNG());
-	}
-
-	PNG image(width, height);
-
-	for (int i = 0; i < width; i++) {
-		for (int j = 0; j < height; j++) {
-			*(image.getPixel(i,j)) = getPixelFromTree(i,j);
-		}
-	}
-
-	return image;
+    PNG image(this->width,this->height); 
+    //render helper function
+    render(this->root,image);
+    return image;
 }
 
-HSLAPixel twoDtree::getPixelFromTree(int x, int y) const {
-	return getPixelFromTree(root, x, y);
+void twoDtree::render(Node* root, PNG & image){
+    if(root->LT == NULL && root->RB == NULL){
+        pair<int,int> ul = root->upLeft;
+        pair<int,int> lr = root->lowRight;
+        for (int i=ul.first;i<=lr.first;i++){
+            for(int j=ul.second;j<=lr.second;j++){
+                HSLAPixel * currPix = image.getPixel(i,j);
+                HSLAPixel avgPix = root->avg;
+                currPix->a = avgPix.a;
+                currPix->h = avgPix.h;
+                currPix->l = avgPix.l;
+                currPix->s = avgPix.s;
+            }
+        }
+    } else {
+        if(root->LT != NULL) render(root->LT,image);
+        if(root->RB != NULL) render(root->RB,image);
+    }
 }
-
-HSLAPixel twoDtree::getPixelFromTree(Node* node, int x, int y) const {
-	if (node->LT == NULL && node->RB == NULL) {
-		return node->avg;
-	}
-
-	else if (x <= node->LT->lowRight.first && y <= node->LT->lowRight.second && node->LT->upLeft.first <= x && node->LT->upLeft.second <= y) {
-		return getPixelFromTree(node->LT, x, y);
-	} else {
-		return getPixelFromTree(node->RB, x, y);
-	}
-}
-
 
 /* prune function modifies tree by cutting off
- * subtrees whose leaves are all within tol of 
+ * subtrees whose leaves are all within tol of
  * the average pixel value contained in the root
  * of the subtree
  */
 void twoDtree::prune(double tol){
-
-/* your code here */
-	prune(root, tol);
-
+    prune(root,tol);
 }
 
-void twoDtree::prune(Node* node, double tol) {
-	if (node->LT == NULL) {
-		return;
-	}
-
-	if (isPrunable(node, node, tol)) {
-		delete node->LT;
-		delete node->RB;
-
-		node->LT = NULL;
-		node->RB = NULL;
-
-		return;
-	} else {
-		prune(node->LT, tol);
-		prune(node->RB, tol);
-	}
+/** helper prune*/
+void twoDtree::prune(Node* curr, double tol) {
+    if (curr != NULL) {
+        HSLAPixel currAvg = curr->avg;
+        if (isSatisified(curr,tol,currAvg)) {
+            clear(curr->LT);
+            curr->LT = NULL;
+            clear(curr->RB);
+            curr->RB = NULL;
+        }
+        prune(curr->LT,tol);
+        prune(curr->RB,tol);
+    }
 }
 
-bool twoDtree::isPrunable(Node* node1, Node* node2, double tol) const {
-	if (node1->LT == NULL) {
-		if (node1->avg.dist(node2->avg) <= tol) {
-			return true;
-		}
-
-		return false;
-	} else {
-		return isPrunable(node1->LT, node2, tol) && isPrunable(node1->RB, node2, tol);
-	}
+/** whether all leaves of current node is within the tolerance */
+bool twoDtree::isSatisified(Node * curr, double tol, HSLAPixel & comparePix) {
+    bool within = true;
+    if (curr != NULL) {
+        if (curr->RB == NULL && curr->LT == NULL) {
+            double dist = comparePix.dist(curr->avg);
+			within = (dist <= tol) && within;
+			/*
+            if (dist > tol) {
+                within = false;
+            }
+			*/
+        }
+        else {
+            bool left = isSatisified(curr->LT,tol,comparePix);
+            bool right = isSatisified(curr->RB,tol,comparePix);
+			within = left && right && within;
+			/*
+            if (!left || !right) {
+                within = false;
+            }
+			*/
+        }
+    }
+    return within;
 }
-
-
+/** clear current tree*/
+void twoDtree::clear(Node *curr) {
+    if (curr != NULL) {
+        clear(curr->LT);
+        clear(curr->RB);
+        delete curr;
+    }
+}
 
 /* helper function for destructor and op= */
 /* frees dynamic memory associated w the twoDtree */
 void twoDtree::clear() {
- /* your code here */
-	delete root;
-	clear(root);
-}
-
-void twoDtree::clear(Node* node) {
-	if (node != NULL) {
-		Node* temp = node;
-		clear(node->LT);
-		clear(node->RB);
-
-		delete temp;
-	}
+    /* your code here */
+    clear(root);
 }
 
 
 /* helper function for copy constructor and op= */
 void twoDtree::copy(const twoDtree & orig){
-
-/* your code here */
-	root = new Node(orig.root->upLeft, orig.root->lowRight, orig.root->avg);
-	height = orig.height;
-	width = orig.width;
-	copy(root, orig.root);
-
+    this->height = orig.height;
+    this->width = orig.width;
+    this->root = copy(orig.root);
 }
 
-void twoDtree::copy(Node* dest, Node* other) {
-	if (other != NULL) {
-		if (other->LT != NULL) {
-			dest->LT = new Node(other->LT->upLeft, other->LT->lowRight, other->LT->avg);
-			dest->RB = new Node(other->RB->upLeft, other->RB->lowRight, other->RB->avg);
-			copy(dest->LT, other->LT);
-			copy(dest->RB, other->RB);
-		}
-	}
+twoDtree::Node * twoDtree::copy(Node * org) {
+    Node * newNode = NULL;
+    if (org != NULL) {
+        newNode = new Node(org->upLeft,org->lowRight,org->avg);
+        newNode->LT = copy(org->LT);
+        newNode->RB = copy(org->RB);
+    }
+    return newNode;
 }
-
-
 

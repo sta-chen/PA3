@@ -187,21 +187,29 @@ private:
    */
    Node * buildTree(stats & s,pair<int,int> ul, pair<int,int> lr,bool vert);
 
-   void buildTree(Node* node, stats& s, pair<int,int> ul, pair<int,int> lr, bool vert);
+   // void buildTree(Node* node, stats& s, pair<int,int> ul, pair<int,int> lr, bool vert);
 
-   pair<pair<int,int>, pair<int,int>> findBestSplit(stats& s, pair<int,int> ul, pair<int,int> lr, bool vert);
+   // pair<pair<int,int>, pair<int,int>> findBestSplit(stats& s, pair<int,int> ul, pair<int,int> lr, bool vert);
 
-   HSLAPixel getPixelFromTree(int x, int y) const;
+   // HSLAPixel getPixelFromTree(int x, int y) const;
 
-   HSLAPixel getPixelFromTree(Node* node, int x, int y) const;
+   // HSLAPixel getPixelFromTree(Node* node, int x, int y) const;
 
-   void prune(Node* node, double tol);
+   // void prune(Node* node, double tol);
 
-   bool isPrunable(Node* node1, Node* node2, double tol) const;
+   // bool isPrunable(Node* node1, Node* node2, double tol) const;
 
-   void clear(Node* node);
+   // void clear(Node* node);
 
-   void copy(Node* dest, Node* other);
+   // void copy(Node* dest, Node* other);
+
+   int splitVertically(stats& s, pair<int,int> ul, pair<int,int> lr);
+   int splitHorizontally(stats& s, pair<int,int> ul, pair<int,int> lr);
+   void render(Node* root, PNG& image);
+   void prune(Node* curr, double tol);
+   bool isSatisified(Node* curr, double tol, HSLAPixel& comparePix);
+   void clear(Node* curr);
+   Node* copy(Node* org);
 };
 
 #endif
